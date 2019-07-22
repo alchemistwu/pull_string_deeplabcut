@@ -24,28 +24,28 @@ def remove_low_confidence(data_dict, threshold = 0.9, filter='median', padding='
     index_right = np.where(data_dict["p_right"] <= threshold)[0]
 
     padding_num = 0
-    data_dict["y_left"][index_left] = padding_num
-    data_dict["y_right"][index_right] = padding_num
+    data_dict_filted = copy.deepcopy(data_dict)
+
+    data_dict_filted["y_left"][index_left] = padding_num
+    data_dict_filted["y_right"][index_right] = padding_num
     if padding == 'zero':
         padding_num = 0
-        data_dict["y_left"][index_left] = padding_num
-        data_dict["y_right"][index_right] = padding_num
-        return data_dict
+        data_dict_filted["y_left"][index_left] = padding_num
+        data_dict_filted["y_right"][index_right] = padding_num
+
     elif padding == "linespace":
         slice_left = find_gap(index_left)
         slice_right = find_gap(index_right)
-        data_dict = linespace_padding(slice_left, data_dict, "y_left")
-        data_dict = linespace_padding(slice_right, data_dict, "y_right")
-
-    data_dict_filted = copy.copy(data_dict)
+        data_dict_filted = linespace_padding(slice_left, data_dict_filted, "y_left")
+        data_dict_filted = linespace_padding(slice_right, data_dict_filted, "y_right")
 
     if filter == 'median':
-        data_dict_filted["y_left"] = medfilt(data_dict["y_left"], kernel_size=7)
-        data_dict_filted["y_right"] = medfilt(data_dict["y_right"], kernel_size=7)
+        data_dict_filted["y_left"] = medfilt(data_dict_filted["y_left"], kernel_size=11)
+        data_dict_filted["y_right"] = medfilt(data_dict_filted["y_right"], kernel_size=11)
     else:
-        b, a = signal.butter(3, 0.17, 'lowpass')
-        data_dict_filted["y_left"] = signal.filtfilt(b, a, data_dict["y_left"])
-        data_dict_filted["y_right"] = signal.filtfilt(b, a, data_dict["y_right"])
+        b, a = signal.butter(7, 0.1, 'lowpass')
+        data_dict_filted["y_left"] = signal.filtfilt(b, a, data_dict_filted["y_left"])
+        data_dict_filted["y_right"] = signal.filtfilt(b, a, data_dict_filted["y_right"])
 
     return data_dict, data_dict_filted
 
@@ -96,21 +96,25 @@ def linespace_padding(slice_list, data_dict, dict_key):
         data_dict[dict_key][start_index: end_index + 2] = padding_list
     return data_dict
 
-def plot(data_dict, result_dict):
+def plot(data_dict, data_dict_med, result_dict):
     plt.figure(1)
     plt.subplot(211)
     y_left = data_dict["y_left"]
+    y_left_med = data_dict_med["y_left"]
     x_left = np.linspace(0, y_left.shape[0], y_left.shape[0])
 
     plt.scatter(result_dict["index_left"], result_dict["y_left"], s=40, zorder=2)
     plt.plot(x_left, y_left, 'k')
+    plt.plot(x_left, y_left_med, 'r')
 
     plt.subplot(212)
     y_right = data_dict["y_right"]
+    y_right_med = data_dict_med["y_right"]
 
     x_right = np.linspace(0, y_right.shape[0], y_right.shape[0])
     plt.scatter(result_dict["index_right"], result_dict["y_right"], s=40, zorder=2)
     plt.plot(x_right, y_right, 'k')
+    plt.plot(x_right, y_right_med, 'r')
     plt.show()
 
 
@@ -125,7 +129,7 @@ def boolean_string(s):
         raise ValueError('Not a valid boolean string')
     return s == 'True'
 
-def get_slide_window(i, size, window_size=21):
+def get_slide_window(i, size, window_size=17):
     if i < (window_size - 1)/2:
         start = 0
         end = window_size
@@ -228,7 +232,7 @@ if not DEBUG:
         plot(data_dict, result_dict)
 
 else:
-    input_file = "/home/silasi/mathew/data/32864-01172019145236DeepCut_resnet50_String Pull MergeMay22shuffle1_493000.csv"
+    input_file = "/home/silasi/mathew/data/32833-01172019170245DeepCut_resnet50_String Pull MergeMay22shuffle1_493000.csv"
     data_dict = load_data(input_file)
     data_dict, data_dict_med = remove_low_confidence(data_dict, filter='lowpass', padding="linespace")
 
@@ -236,7 +240,7 @@ else:
     points_right = find_changes(data_dict_med['y_right'])
     result_dict = summary_dict(data_dict, data_dict_med, points_left, points_right)
 
-    plot(data_dict, result_dict)
+    plot(data_dict, data_dict_med, result_dict)
     save_result(input_file, "/home/silasi/mathew/output", result_dict)
 
 
