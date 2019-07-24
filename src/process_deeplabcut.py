@@ -129,7 +129,7 @@ def boolean_string(s):
         raise ValueError('Not a valid boolean string')
     return s == 'True'
 
-def get_slide_window(i, size, window_size=17):
+def get_slide_window(i, size, window_size=21):
     if i < (window_size - 1)/2:
         start = 0
         end = window_size
@@ -142,7 +142,7 @@ def get_slide_window(i, size, window_size=17):
     return np.linspace(start, end, end - start + 1).astype(np.int)
 
 
-def summary_dict(data_dict, data_dict_med, points_left, points_right):
+def summary_dict(data_dict, data_dict_med, points_left, points_right, threshold=0.9):
     result_dict = {"index_left":[], "y_left":[], "index_gap_left":[], "value_gap_left":[], "index_right":[], "y_right":[], "index_gap_right":[], "value_gap_right":[]}
 
     length = len(data_dict["y_left"])
@@ -151,11 +151,15 @@ def summary_dict(data_dict, data_dict_med, points_left, points_right):
         window = get_slide_window(points_left[i], length)
         window = window[np.where(window >= last_window_index)]
         candidates = data_dict["y_left"][window]
+        p_candidates = data_dict["p_left"][window]
+
         if data_dict_med["y_left"][points_left[i]] > data_dict_med["y_left"][points_left[i + 1]]:
+            candidates[np.where(p_candidates < threshold)] = 0
             index = np.argmax(candidates)
             result_dict["index_left"].append(window[index])
             result_dict["y_left"].append(data_dict["y_left"][window[index]])
         else:
+            candidates[np.where(p_candidates < threshold)] = 65336
             index = np.argmin(candidates)
             result_dict["index_left"].append(window[index])
             result_dict["y_left"].append(data_dict["y_left"][window[index]])
@@ -175,11 +179,14 @@ def summary_dict(data_dict, data_dict_med, points_left, points_right):
         window = get_slide_window(points_right[i], length)
         window = window[np.where(window >= last_window_index)]
         candidates = data_dict["y_right"][window]
+        p_candidates = data_dict["p_right"][window]
         if data_dict_med["y_right"][points_right[i]] > data_dict_med["y_right"][points_right[i + 1]]:
+            candidates[np.where(p_candidates < threshold)] = 0
             index = np.argmax(candidates)
             result_dict["index_right"].append(window[index])
             result_dict["y_right"].append(data_dict["y_right"][window[index]])
         else:
+            candidates[np.where(p_candidates < threshold)] = 65336
             index = np.argmin(candidates)
             result_dict["index_right"].append(window[index])
             result_dict["y_right"].append(data_dict["y_right"][window[index]])
@@ -208,7 +215,7 @@ def summary_dict(data_dict, data_dict_med, points_left, points_right):
 
     return result_dict
 
-DEBUG = True
+DEBUG = False
 
 if not DEBUG:
     parser = argparse.ArgumentParser()
@@ -229,7 +236,7 @@ if not DEBUG:
 
     save_result(args.input_file, args.output_directory, result_dict)
     if args.show:
-        plot(data_dict, result_dict)
+        plot(data_dict, data_dict_med, result_dict)
 
 else:
     input_file = "/home/silasi/mathew/data/32833-01172019170245DeepCut_resnet50_String Pull MergeMay22shuffle1_493000.csv"
