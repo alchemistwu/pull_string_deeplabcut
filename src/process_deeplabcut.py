@@ -1,3 +1,9 @@
+"""
+This script is used for filtering outliers and find both peaks and drops inside signal.
+Author: Junzheng Wu
+Email: alchemistWu0521@gmail.com
+Organization: Silasi Lab, uOttawa.
+"""
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,6 +14,11 @@ from scipy.signal import medfilt
 from scipy import signal
 
 def load_data(directory):
+    """
+    Load a csv file into a dictionary.
+    :param directory:
+    :return:
+    """
     df = pd.read_csv(directory)
     data = df.values[3:, np.asarray([2, 3, 5, 6])]
     new_df = pd.DataFrame(data=data)
@@ -20,6 +31,14 @@ def load_data(directory):
     return new_dict
 
 def remove_low_confidence(data_dict, threshold = 0.9, filter='median', padding='zero'):
+    """
+    Remove low confidence frame and apply filters on the signal.
+    :param data_dict:
+    :param threshold: filtering low confidence
+    :param filter: median or lowpass
+    :param padding: zero or linespace, line space means the two frames before the blank frames and after them will be used to calculate a line space to fill those blanks.
+    :return: A raw dictionary and a processed dictionary.
+    """
     index_left = np.where(data_dict["p_left"] <= threshold)[0]
     index_right = np.where(data_dict["p_right"] <= threshold)[0]
 
@@ -50,6 +69,11 @@ def remove_low_confidence(data_dict, threshold = 0.9, filter='median', padding='
     return data_dict, data_dict_filted
 
 def find_gap(index_list):
+    """
+    Find the start point and the end point of gaps inside an index list
+    :param index_list:
+    :return:
+    """
     slice_list = []
     start_point = None
     end_point = None
@@ -68,6 +92,11 @@ def find_gap(index_list):
     return slice_list
 
 def find_changes(data_array):
+    """
+    Find the peaks and drops
+    :param data_array:
+    :return:
+    """
 
     current_state = None
     change_points = []
@@ -85,6 +114,13 @@ def find_changes(data_array):
     return change_points
 
 def linespace_padding(slice_list, data_dict, dict_key):
+    """
+    Line space padding
+    :param slice_list:
+    :param data_dict:
+    :param dict_key:
+    :return:
+    """
     for i in range(len(slice_list)):
         (start_index, end_index) = slice_list[i]
         start_value = data_dict[dict_key][start_index - 1]
@@ -130,6 +166,13 @@ def boolean_string(s):
     return s == 'True'
 
 def get_slide_window(i, size, window_size=21):
+    """
+    Get a window around the given position
+    :param i:
+    :param size:
+    :param window_size:
+    :return:
+    """
     if i < (window_size - 1)/2:
         start = 0
         end = window_size
